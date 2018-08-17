@@ -16,6 +16,19 @@ public:
   double Kp;
   double Ki;
   double Kd;
+  /*
+  * Twiddle
+  */ 
+  double tolerance ;
+  int t_step ;
+  bool twiddle;
+
+  double best_error;
+  double err;
+
+
+  std::vector<double> p = {0.0, 0.0, 0.0};
+  std::vector<double> dp = {0.0, 0.0, 0.0};
 
   /*
   * Constructor
@@ -41,6 +54,25 @@ public:
   * Calculate the total PID error.
   */
   double TotalError();
+
+  /*
+  * Calculate the Sum of deltas.
+  */
+  double SumIncrements();
+  /*
+  * Calculate the Average Error.
+  */
+  double AverageError();
+
+  void ResetSettings();
+
+  void Restart(uWS::WebSocket<uWS::SERVER> ws);
+
+  void Twiddle(int idx);
+
+  void pparam();
+
+  void perror();
 };
 
 #endif /* PID_H */

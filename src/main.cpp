@@ -1,8 +1,10 @@
 #include <uWS/uWS.h>
-#include <iostream>
+
 #include "json.hpp"
 #include "PID.h"
-#include <math.h>
+#include <cmath>
+#include <cstdlib>
+
 
 // for convenience
 using json = nlohmann::json;
@@ -11,6 +13,10 @@ using json = nlohmann::json;
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+
+
+
+
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -28,14 +34,41 @@ std::string hasData(std::string s) {
   return "";
 }
 
+
+
+
+
+void Restart( uWS::WebSocket<uWS::SERVER>)
+    {
+        std::string reset_msg = "42[\"reset\",{}]";
+        uWS::WebSocket<uWS::SERVER> ws;
+        ws.send(reset_msg.data(), reset_msg.length(), uWS::OpCode::TEXT);
+        
+    };
+
+
+
 int main()
 {
   uWS::Hub h;
 
-  PID pid;
+  PID pid, pid_speed;
+
   // TODO: Initialize the pid variable.
 
-  h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+
+  pid.twiddle = true;
+  //pid.Init(0.0,0.0,0.0);
+  pid.Init(.15,0.0,3.0);
+
+  pid_speed.Init(0.1,0.0,0.1);
+  double throttle = 0.1;
+  double speed_target = 20.0;
+  double speed_max = 60.0;
+
+
+
+  h.onMessage([&pid, &pid_speed, &speed_target, &throttle , &speed_max](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -49,7 +82,7 @@ int main()
           // j[1] is the data JSON object
           double cte = std::stod(j[1]["cte"].get<std::string>());
           double speed = std::stod(j[1]["speed"].get<std::string>());
-          double angle = std::stod(j[1]["steering_angle"].get<std::string>());
+          //double angle = std::stod(j[1]["steering_angle"].get<std::string>());
           double steer_value;
           /*
           * TODO: Calcuate steering value here, remember the steering value is
@@ -57,15 +90,69 @@ int main()
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
-          
+
+
+
+
+          double speed_error = speed_target - speed;
+          pid_speed.UpdateError(speed_error);
+          //throttle = ( .2 - pid_speed.TotalError() )  ;
+
+
+          pid.UpdateError(cte);
+          steer_value = pid.TotalError() / deg2rad(25.0);
+
+          pid.t_step ++;
+
+
+        
+        std::cout << pid.t_step << "\tSteer: " <<  steer_value<< "\tAvg: " <<  pid.AverageError() << "\tBest: " <<  pid.best_error << "\t"; pid.pparam();
+
+        if (pid.SumIncrements() > pid.tolerance)
+        {
+
+          //std::cout << "Start Optimizing"<< std::endl;
+
+          if ( fabs(cte) > 5.0 && pid.t_step <= 100) 
+          {
+              std::cout << "Reseting" << std::endl;
+              Restart(ws);
+          }
+          else if (pid.t_step > 100)
+          {
+              std::cout << "Twiddle" << std::endl;
+              int idx = 0;
+              
+              
+              pid.Twiddle(idx);
+
+              pid.t_step = 0;
+              pid.err = 0.0;
+              //t_count = 1;
+
+          }
+
+
+ 
+        }
+        else 
+        {
+          std::cout << "Optimized\t" ; pid.pparam() ;
+            
+        
+        }
+
+
+
+
           // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          //std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = 0.3;
+          msgJson["throttle"] = throttle;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          //std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
@@ -112,3 +199,5 @@ int main()
   }
   h.run();
 }
+
+

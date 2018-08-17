@@ -2,7 +2,7 @@
 
 #include <uWS/uWS.h>
 #include "PID.h"
-#include <OGRE/OgreMath.h>
+//#include <OGRE/OgreMath.h>
 
 #include <iostream>
 #include <cmath>
@@ -108,7 +108,7 @@ void PID::Twiddle(int i)
   
     cout << t_step << "\t" <<  best_error << endl;
 
-    cout << setprecision(4) ;
+    //cout << setprecision(4) ;
 
         for (unsigned int i=0; i < p.size(); i++)
         {

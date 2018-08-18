@@ -57,8 +57,8 @@ int main()
   // TODO: Initialize the pid variable.
 
 
-  pid.twiddle = true;
-  //pid.Init(0.0,0.0,0.0);
+  //pid.twiddle = true;
+
   pid.Init(.15,0.0,3.0);
 
   pid_speed.Init(0.1,0.0,0.1);
@@ -128,7 +128,7 @@ int main()
 
               pid.t_step = 0;
               pid.err = 0.0;
-              //t_count = 1;
+              
 
           }
 
